@@ -1,10 +1,12 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import lime
 import lime.lime_tabular
+import webbrowser
 from sklearn.externals import joblib
 
 def main():
@@ -16,7 +18,8 @@ def main():
     id_client = st.sidebar.selectbox(
     'Choisissez votre numéro de client',
     data.index)
-    if st.checkbox('Variables'):
+    menu = st.sidebar.radio('Affichage', ['Prédiction', 'Variables', 'Importance des variables'])
+    if menu == 'Variables':
         select_var = st.radio("Quel variable voulez-vous examiner ?", 
         ('credit_annuity_ratio', 'DAYS_EMPLOYED', 'AMT_ANNUITY', 'credit_goods_price_ratio'))
         sns.distplot(data[data['TARGET_x'] == 0][select_var], label='Rembourse')
@@ -25,21 +28,26 @@ def main():
         plt.legend()
         st.set_option('deprecation.showPyplotGlobalUse', False)
         st.pyplot()
-    elif st.checkbox('Prédiction'):
+    elif menu == 'Prédiction':
         prob0 = gbm.predict_proba(data.drop(['TARGET_x', 'TARGET_y'], axis = 1).loc[[id_client]])[0][0]
-        st.write('La probabilité de remboursé le prêt est', prob0)
+        st.header('La probabilité de remboursé le prêt est :')
+        st.subheader(prob0)
+    elif menu == 'Importance des variables':
+        #GLOBAL
+        st.subheader('Interprétation globale')
         sns.barplot(x="imp", y="col", data=featureimp)
         plt.title('Importance des variables')
         st.set_option('deprecation.showPyplotGlobalUse', False)
         st.pyplot()
-        predict_fn_gbm = lambda x: gbmimp.predict_proba(x).astype(float)
-        val = data.drop(['TARGET_x', 'TARGET_y'], axis = 1 ).values
-
-        explainer = lime.lime_tabular.LimeTabularExplainer(val,feature_names = data.drop(['TARGET_x', 'TARGET_y'], axis = 1 ).columns ,class_names=['Rembourse','Rembourse pas'],kernel_width=5)
-        choosen_instance = data.drop(['TARGET_x', 'TARGET_y'], axis = 1 )[[id_client]].values[0]
+        #LOCAL
+        st.subheader('Interprétation locale')
+        predict_fn_gbm = lambda x: gbm.predict_proba(x).astype(float)
+        X = data.drop(['TARGET_x', 'TARGET_y'], axis=1)
+        val = X.values
+        explainer = lime.lime_tabular.LimeTabularExplainer(val, feature_names = X.columns,class_names=['Rembourse','Rembourse pas'],kernel_width=5)
+        choosen_instance = X.loc[[id_client]].values[0]
         exp = explainer.explain_instance(choosen_instance, predict_fn_gbm,num_features=10)
-        exp.show_in_notebook(show_all=False)
-        #modifier lime
+        components.html(exp.as_html(), height=800)
 
     
 
