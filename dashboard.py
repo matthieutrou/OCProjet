@@ -36,10 +36,10 @@ def main():
         val = data.drop(['TARGET_x', 'TARGET_y'], axis = 1 ).values
 
         explainer = lime.lime_tabular.LimeTabularExplainer(val,feature_names = data.drop(['TARGET_x', 'TARGET_y'], axis = 1 ).columns ,class_names=['Rembourse','Rembourse pas'],kernel_width=5)
-        choosen_instance = val.loc[[id_client]].values[0]
+        choosen_instance = data.drop(['TARGET_x', 'TARGET_y'], axis = 1 )[[id_client]].values[0]
         exp = explainer.explain_instance(choosen_instance, predict_fn_gbm,num_features=10)
         exp.show_in_notebook(show_all=False)
-        
+        #modifier lime
 
     
 
